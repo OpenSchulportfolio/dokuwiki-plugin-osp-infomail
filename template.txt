@@ -1,0 +1,24 @@
+====== Infomail Vorlage ======
+
+Hier können Sie Text und Form der Mail festlegen, die vom Infomail Plugin verschickt wird.
+
+  * Löschen Sie keinesfalls die Markierung, die den Beginn der Vorlage markiert!
+  * Verwenden Sie keine Formatierungen, die Mail wird als Text verschickt.
+  * Sie können Platzhalter verwenden, die beim Versand der Mail ersetzt werden. Die Platzhalter müssen exakt wie angegeben eingefügt werden!
+    * ''@NAME@'': Name des Empfängers, wenn angegeben
+    * ''@PAGE@'': Seitenname (mit Namensräumen)
+    * ''@SITE@'': Titel des Portfolios
+    * ''@SUBJECT@'': Betreff, wie im Formular angegeben
+    * ''@URL@'': Link zur Seite, von der aus die Benachrichtigung verschickt wurde.
+    * ''@COMMENT@'': Text der Mail
+    * ''@AUTHOR@'': Name des angemeldeten Benutzers
+
+Die folgende Zeile **nicht löschen**!
+###template_begin###
+
+  @COMMENT@
+  
+  --
+  Direktlink:  @URL@
+  Seitenname:  @PAGE@
+  Es schreibt: @AUTHOR@
