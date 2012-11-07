@@ -159,6 +159,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
                     }
                 }
             }
+
         /* Validate input. */
         if ( count($all_recipients_valid) == 0 ) {
             return $this->getLang('novalid_rec');
@@ -231,10 +232,51 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         $mailtext = wordwrap($mailtext, 78);
 
         /* Perform stuff. */
+        $all_recipients = "";
         foreach ( $all_recipients_valid as $mail ) {
             $recipient = '<' . $mail . '>';
             mail_send($recipient, $subject, $mailtext, $sender);
+            $this->mail_log($recipient, $subject, $mailtext, $sender);
+            $all_recipients .= $recipient;
         }
+        $this->mail_archive($all_recipients, $subject, $mailtext, $sender);
         return false;
+    }
+
+/*
+ * Logging infomails as Wikipages when configured so
+ */
+    function mail_archive($recipient, $subject, $mailtext, $sender) {
+        global $conf;
+        $targetdir = $conf['cachedir']."/infomail-plugin/archive/";
+        if ( ! is_dir($targetdir) ) {
+            mkdir($targetdir);
+        }
+
+        $t = time();
+        $date = strftime("%d.%m.%Y, %H:%M",$t);
+        $mailtext = "Von:   $sender\nAn:    $recipient\nDatum: $date\n\n" .$mailtext;
+
+        $filename = strftime("%Y%m%d%H%M%S",$t)."_infomail.txt";
+        $archfile = $targetdir . $filename;
+        io_saveFile($archfile,"$mailtext\n",true);
+
+    }
+
+/*
+ * Logging infomails as Wikipages when configured so
+ */
+    function mail_log($recipient, $subject, $mailtext, $sender) {
+        global $conf;
+        $targetdir = $conf['cachedir']."/infomail-plugin/log/";
+        $logfile = $targetdir . "infomail.log";
+        if ( ! is_dir($targetdir) ) {
+            mkdir($targetdir);
+        }
+
+        $t = time();
+        $log = $t."\t".strftime($conf['dformat'],$t)."\t".$_SERVER['REMOTE_ADDR']."\t".$sender."\t".$recipient;
+        io_saveFile($logfile,"$log\n",true);
+
     }
 }
