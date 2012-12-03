@@ -53,6 +53,9 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         $r_email = isset($_REQUEST['r_email']) ? $_REQUEST['r_email'] : '';
         $s_name  = isset($_REQUEST['s_name']) ? $_REQUEST['s_name'] : '';
         $s_email = isset($_REQUEST['s_email']) ? $_REQUEST['s_email'] : '';
+        $comment = isset($_REQUEST['comment']) ? $_REQUEST['comment'] : '';
+        $subject = isset($_REQUEST['subject']) ? $_REQUEST['subject'] : '';
+
         if (isset($_REQUEST['id'])) {
             $id  = $_REQUEST['id'];
         } else {
@@ -121,15 +124,25 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         if(!is_null($helper) && $helper->isEnabled()){
             $form->addElement($helper->getHTML());
         }
-
+        # FIXME:  I8N, Text
+        $form->addElement('<select name="archiveopt">
+                            <option value="1">Ja</option>
+                            <option value="0">Nein</option>
+                           </select>' );
         $form->addElement(form_makeButton('submit', '', $this->getLang('send_infomail')));
         $form->addElement(form_makeButton('submit', 'cancel', $this->getLang('cancel_infomail')));
         $form->printForm();
     }
 
+
     function _handle_post() {
         global $conf;
         global $USERINFO;
+
+        if( isset($_POST['archiveopt']))  {
+            echo $_POST['archiveopt'];
+        } else {
+        }
 
         $helper = null;
         if(@is_dir(DOKU_PLUGIN.'captcha')) $helper = plugin_load('helper','captcha');
@@ -236,10 +249,14 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         foreach ( $all_recipients_valid as $mail ) {
             $recipient = '<' . $mail . '>';
             mail_send($recipient, $subject, $mailtext, $sender);
-            $this->mail_log($recipient, $subject, $mailtext, $sender);
+            if ( $this->getConf('logmails') ) {
+                $this->mail_log($recipient, $subject, $mailtext, $sender);
+            }
             $all_recipients .= $recipient;
         }
-        $this->mail_archive($all_recipients, $subject, $mailtext, $sender);
+        if ( $archiveon ) {
+            $this->mail_archive($all_recipients, $subject, $mailtext, $sender);
+        }
         return false;
     }
 
