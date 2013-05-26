@@ -32,7 +32,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
             !($err = $this->_handle_post())) {
             if ($event->name === 'AJAX_CALL_UNKNOWN') {
                 /* To signal success to AJAX. */
-                header('HTTP/1.1 204 No Content');
+                print '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail"><div class="no"><fieldset class="infomailok"> <legend>Mail versandt...</legend<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/></fieldset></div></form>';
                 return;
             }
             echo 'Thanks for recommending our site.';
@@ -68,7 +68,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         }
         $form = new Doku_Form('infomail_plugin', '?do=infomail');
         $form->addHidden('id', $id);
-        $form->startFieldset($this->getLang('formname') . " " . hsc($id) );
+      #  $form->startFieldset($this->getLang('formname') . " " . hsc($id) );
         if (isset($_SERVER['REMOTE_USER'])) {
             global $USERINFO;
             $form->addHidden('s_name', $USERINFO['name']);
@@ -125,12 +125,14 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
             $form->addElement($helper->getHTML());
         }
         # FIXME:  I8N, Text
+        $form->addElement('<div class="buttons">');
         $form->addElement('<select name="archiveopt">
                             <option value="1">Ja</option>
                             <option value="0">Nein</option>
                            </select>' );
-        $form->addElement(form_makeButton('submit', '', $this->getLang('send_infomail')));
-        $form->addElement(form_makeButton('submit', 'cancel', $this->getLang('cancel_infomail')));
+        $form->addElement(form_makeButton('submit', '', $this->getLang('send_infomail'),array("id"=>"infomail__sendmail")));
+        $form->addElement(form_makeButton('submit', 'cancel', $this->getLang('cancel_infomail'),array("id"=>"infomail_cancel")));
+        $form->addElement('</div>');
         $form->printForm();
     }
 
@@ -139,10 +141,10 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         global $conf;
         global $USERINFO;
 
-        if( isset($_POST['archiveopt']))  {
-            echo $_POST['archiveopt'];
-        } else {
-        }
+        //if( isset($_POST['archiveopt']))  {
+        //    echo $_POST['archiveopt'];
+        //} else {
+        //}
 
         $helper = null;
         if(@is_dir(DOKU_PLUGIN.'captcha')) $helper = plugin_load('helper','captcha');

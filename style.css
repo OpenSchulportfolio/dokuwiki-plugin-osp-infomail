@@ -1,48 +1,5 @@
-#infomail_box {
-    position:fixed;
-    width: 50%;
-    left: 25%;
-    top: 25%;
-    background: #fdfdfd;
-    box-shadow: 8px 8px 8px #aaa , -8px 8px 8px #aaa, 8px -8px 8px #aaa, -8px -8px 8px #aaa;
-    border: 1px solid #ccc;
-    z-index: 4;
-}
-
-#infomail_box fieldset {
-    background: white;
-    margin: 20px;
-}
-
-div.infomail_plugin {
-    width: 50%;
-    text-align: center;
-    font-size: 120%;
-    padding: 2em;
-}
-
-form#infomail_plugin {
-    width: 100%;
-    text-align: center;
-    padding: 0;
-}
-
-form#infomail_plugin p {
-    font-size: 90%;
-    text-align: left;
-}
-
-.infomailok {
- background-color: #efffef;
-}
-
-form#infomail_plugin fieldset legend {
-font-size: 120%;
-}
-form#infomail_plugin fieldset {
-    border:1px dotted #aaa;
-    padding: 6px;
-    width: 91%;
+.infomail-no-close .ui-dialog-titlebar-close {
+    display: none;
 }
 
 form#infomail_plugin label {
@@ -69,4 +26,9 @@ form#infomail_plugin label input.edit {
     display: block;
     float: left;
     margin-left: 5px;
+}
+
+form#infomail_plugin .buttons input {
+    float: right;
+    margin-left: 3px;
 }
