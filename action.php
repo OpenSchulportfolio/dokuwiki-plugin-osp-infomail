@@ -32,7 +32,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
             !($err = $this->_handle_post())) {
             if ($event->name === 'AJAX_CALL_UNKNOWN') {
                 /* To signal success to AJAX. */
-                print '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail"><div class="no"><fieldset class="infomailok"> <legend>Mail versandt...</legend<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/></fieldset></div></form>';
+                $this->_show_success();
                 return;
             }
             echo 'Thanks for recommending our site.';
@@ -46,6 +46,9 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         $this->_show_form();
     }
 
+/**
+  * Shows the mailform
+ */
     function _show_form() {
         global $conf;
         global $ID;
@@ -125,7 +128,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
             $form->addElement($helper->getHTML());
         }
         # FIXME:  I8N, Text
-        $form->addElement('<div class="buttons">');
+        $form->addElement('<div class="buttons">' . $this->getLang('archive'). "&nbsp;");
         $form->addElement('<select name="archiveopt">
                             <option value="1">Ja</option>
                             <option value="0">Nein</option>
@@ -136,7 +139,9 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         $form->printForm();
     }
 
-
+/**
+  *  Validate input and send mail if everything is ok
+  */
     function _handle_post() {
         global $conf;
         global $USERINFO;
@@ -262,40 +267,54 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         return false;
     }
 
-/*
- * Logging infomails as Wikipages when configured so
- */
-    function mail_archive($recipient, $subject, $mailtext, $sender) {
-        global $conf;
-        $targetdir = $conf['cachedir']."/infomail-plugin/archive/";
-        if ( ! is_dir($targetdir) ) {
-            mkdir($targetdir);
-        }
+/**
+  * show success message
+  */
+function _show_success () {
 
-        $t = time();
-        $date = strftime("%d.%m.%Y, %H:%M",$t);
-        $mailtext = "Von:   $sender\nAn:    $recipient\nDatum: $date\n\n" .$mailtext;
-
-        $filename = strftime("%Y%m%d%H%M%S",$t)."_infomail.txt";
-        $archfile = $targetdir . $filename;
-        io_saveFile($archfile,"$mailtext\n",true);
-
-    }
+    $html  = '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail">';
+    $html .= '<div class="no">';
+    $html .= ' <span class="ui-icon ui-icon-circle-check" style="float: left; margin: 0 7px 50px 0;"></span>';
+    $html .= '<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/></div></form>';
+    print $html;
+}
 
 /*
  * Logging infomails as Wikipages when configured so
  */
-    function mail_log($recipient, $subject, $mailtext, $sender) {
-        global $conf;
-        $targetdir = $conf['cachedir']."/infomail-plugin/log/";
-        $logfile = $targetdir . "infomail.log";
-        if ( ! is_dir($targetdir) ) {
-            mkdir($targetdir);
-        }
-
-        $t = time();
-        $log = $t."\t".strftime($conf['dformat'],$t)."\t".$_SERVER['REMOTE_ADDR']."\t".$sender."\t".$recipient;
-        io_saveFile($logfile,"$log\n",true);
-
+function mail_archive($recipient, $subject, $mailtext, $sender) {
+    global $conf;
+    $targetdir = $conf['cachedir']."/infomail-plugin/archive/";
+    if ( ! is_dir($targetdir) ) {
+        mkdir($targetdir);
     }
+
+    $t = time();
+    $date = strftime("%d.%m.%Y, %H:%M",$t);
+    $mailtext = "Von:   $sender\nAn:    $recipient\nDatum: $date\n\n" .$mailtext;
+
+    $filename = strftime("%Y%m%d%H%M%S",$t)."_infomail.txt";
+    $archfile = $targetdir . $filename;
+    io_saveFile($archfile,"$mailtext\n",true);
+
+}
+
+/*
+* Logging infomails as Wikipages when configured so
+*/
+function mail_log($recipient, $subject, $mailtext, $sender) {
+    global $conf;
+    $targetdir = $conf['cachedir']."/infomail-plugin/log/";
+    $logfile = $targetdir . "infomail.log";
+    if ( ! is_dir($targetdir) ) {
+        mkdir($targetdir);
+    }
+
+    $t = time();
+    $log = $t."\t".strftime($conf['dformat'],$t)."\t".$_SERVER['REMOTE_ADDR']."\t".$sender."\t".$recipient;
+    io_saveFile($logfile,"$log\n",true);
+
+}
+
+// End
 }
