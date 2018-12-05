@@ -39,18 +39,14 @@ class admin_plugin_infomail extends DokuWiki_Admin_Plugin
         $form->addElement(form_makeButton('submit', '', $this->getLang('createnewsimplelist')));
         $form->printForm();
 
-        // FIXME make this is still not very good, it should use one of the search_* mechanisms instead
-        $listdir = rtrim($conf['datadir'], '/') . '/wiki/infomail/';
-        $lists = glob("$listdir/list_*.txt");
-        $lists = array_map(function ($item) {
-            return basename($item, '.txt');
-        }, $lists);
+        /** @var helper_plugin_infomail $helper */
+        $helper = plugin_load('helper', 'infomail');
 
         // output the available lists
+        $lists = $helper->getLists();
         echo '<ul>';
-        foreach ($lists as $listid) {
-            $name = substr($listid, 5);
-            echo '<li>' . html_wikilink("wiki:infomail:$listid", "$name") . '</li>';
+        foreach ($lists as $list) {
+            echo '<li>' . html_wikilink("wiki:infomail:list_$list", $list) . '</li>';
         }
         echo '</ul>';
 
