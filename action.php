@@ -5,18 +5,16 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
     /** @inheritdoc */
     public function register(Doku_Event_Handler $controller)
     {
-        // FIXME it's probably not cool to have all three events go to the same handler
-        $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, '_handle');
-        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, '_handle');
-        $controller->register_hook('TPL_ACT_UNKNOWN', 'BEFORE', $this, '_handle');
+        // we handle AJAX and non AJAX requesat through the same handler
+        $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, 'handleEvent');
+        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleEvent');
+        $controller->register_hook('TPL_ACT_UNKNOWN', 'BEFORE', $this, 'handleEvent');
     }
 
     /**
-     * Send the email
-     *
      * @param Doku_Event $event
      */
-    public function _handle(Doku_Event $event)
+    public function handleEvent(Doku_Event $event)
     {
         // the basic handling is the same for all events
         // we either show the form or handle the post data
@@ -34,25 +32,22 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
 
         global $INPUT;
 
-        /*
-        if ($INPUT->server->str('REQUEST_METHOD') === 'POST') {
-            isset($_POST['sectok']) &&
-            !($err = $this->_handle_post())) {
-            if ($event->name === 'AJAX_CALL_UNKNOWN') {
-                // To signal success to AJAX. 
-                $this->_show_success();
-                return;
-            }
-            echo 'Thanks for recommending our site.';
-            return;
-        }
-        */
-
-        /* To display msgs even via AJAX. */
+        // early output to trigger display msgs even via AJAX.
         echo ' ';
-        if (isset($err)) {
-            msg($err, -1);
+        if ($INPUT->server->str('REQUEST_METHOD') === 'POST') {
+            try {
+                $this->sendMail();
+                if ($event->name === 'AJAX_CALL_UNKNOWN') {
+                    $this->_show_success(); // To signal success to AJAX.
+                } else {
+                    msg('Thanks for recommending our site.', 1); // FIXME localize
+                }
+                return; // we're done here
+            } catch (\Exception $e) {
+                msg($e->getMessage(), -1);
+            }
         }
+
         echo $this->getForm();
     }
 
@@ -62,11 +57,15 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
     protected function getForm()
     {
         global $INPUT;
+
+        /** @var helper_plugin_infomail $helper */
+        $helper = plugin_load('helper', 'infomail');
+
         $id = getID(); // we may run in AJAX context
         if ($id === '') throw new \RuntimeException('No ID given');
 
         $form = new \dokuwiki\Form\Form([
-            'action' => wl($id, ['do' => 'infomail']),
+            'action' => wl($id, ['do' => 'infomail'], false, '&'),
             'id' => 'infomail_plugin', #FIXME bad ID
         ]);
         $form->setHiddenField('id', $id); // we need it for the ajax call
@@ -84,7 +83,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
         $lists = explode('|', $this->getConf('default_recipient'));
         $lists = array_filter($lists, 'mail_isvalid');
         // get simple listfiles from pages and add them
-        $lists = array_merge($lists, []); //FIXME this needs to come from a central function (in admin)
+        $lists = array_merge($lists, $helper->getLists());
 
         if ($lists) {
             array_unshift($lists, ''); // add empty option
@@ -110,126 +109,109 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
     }
 
     /**
-     *  Validate input and send mail if everything is ok
+     * Validate input and send mail if everything is ok
+     *
+     * @throws Exception when something went wrong
+     * @todo this method is still much too long
      */
-    protected function _handle_post()
+    protected function sendMail()
     {
         global $conf;
+        global $INPUT;
 
-        $helper = null;
-        if (@is_dir(DOKU_PLUGIN . 'captcha')) $helper = plugin_load('helper', 'captcha');
-        if (!is_null($helper) && $helper->isEnabled() && !$helper->check()) {
-            return 'Wrong captcha';
-        }
-        /* Get recipients */
-        $all_recipients = array();
-        if (isset($_POST['r_email'])) {
-            $all_recipients = explode(" ", $_POST['r_email']);
-        }
-        foreach ($all_recipients as $addr) {
-            $addr = trim($addr);
-            if (mail_isvalid($addr)) {
-                $all_recipients_valid[] = $addr;
-            }
-
-        }
-        if (isset($_POST['r_predef']) && mail_isvalid($_POST['r_predef'])) {
-            $all_recipients_valid[] = $_POST['r_predef'];
-        } elseif (isset($_POST['r_predef']) && file_exists(rtrim($conf['datadir'], "/") . "/wiki/infomail/list_" . $_POST['r_predef'] . ".txt")) {
-            $listfile_content = file_get_contents(rtrim($conf['datadir'], "/") . "/wiki/infomail/list_" . $_POST['r_predef'] . ".txt");
-            preg_match_all("/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i", $listfile_content, $simple_mails);
-            foreach ($simple_mails[0] as $addr) {
-                if (mail_isvalid($addr)) {
-                    $all_recipients_valid[] = $addr;
-                }
-            }
+        /** @var helper_plugin_captcha $captcha */
+        $captcha = plugin_load('helper', 'captcha');
+        if ($captcha && !$captcha->check()) {
+            throw new \Exception('Wrong Captcha');
         }
 
-        /* Validate input. */
-        if (count($all_recipients_valid) == 0) {
-            return $this->getLang('novalid_rec');
+        if (!checkSecurityToken()) {
+            throw new \Exception('Security token did not match');
         }
 
-        if (!isset($_POST['s_name']) || trim($_POST['s_name']) === '') {
-            return 'Invalid sender name submitted';
-        }
-        $s_name = $_POST['s_name'];
+        /** @var helper_plugin_infomail $helper */
+        $helper = plugin_load('helper', 'infomail');
 
-        $all_recipients_valid = array_unique($all_recipients_valid);
-
-        $default_sender = $this->getConf('default_sender');
-
-        if (!isset($_POST['s_email']) || !mail_isvalid($_POST['s_email'])) {
-            if (!isset($default_sender) || !mail_isvalid($default_sender)) {
-                return 'Ungültige Sender-Mailadresse angegeben' . $_POST['s_email'];
+        // Get recipients
+        $all_recipients = explode(' ', $INPUT->str('r_email'));
+        $bookmark = $INPUT->filter('trim')->str('r_predef');
+        if ($bookmark) {
+            // a bookmark may be a single address or a list
+            if (mail_isvalid($bookmark)) {
+                $all_recipients[] = $bookmark;
             } else {
-                if (trim($this->getConf('default_sender_displayname')) != "") {
-                    $sender = $this->getConf('default_sender_displayname') . " " . ' <' . $this->getConf('default_sender') . '>';
-                } else {
-                    $sender = $s_name . " " . ' <' . $this->getConf('default_sender') . '>';
-                }
+                $all_recipients = array_merge($all_recipients, $helper->loadList($bookmark));
             }
-        } else {
-            $sender = $s_name . ' <' . $_POST['s_email'] . '>';
         }
+        // clean up recipients
+        $all_recipients = array_map('trim', $all_recipients);
+        $all_recipients = array_map('strtolower', $all_recipients);
+        $all_recipients = array_filter($all_recipients, 'mail_isvalid');
+        $all_recipients = array_unique($all_recipients);
+        if (!$all_recipients) throw new \Exception($this->getLang('novalid_rec'));
 
-        if (!isset($_POST['id']) || !page_exists($_POST['id'])) {
-            return 'Invalid page submitted';
-        }
-        $page = $_POST['id'];
+        // Sender name
+        $s_name = $INPUT->filter('trim')->str('s_name', $this->getConf('default_sender_displayname'));
+        if ($s_name === '') throw new \Exception('Invalid sender name submitted'); // FIXME localize
 
-        $comment = isset($_POST['comment']) ? $_POST['comment'] : null;
+        // Sender email
+        $s_email = $INPUT->filter('trim')->str('s_email', $this->getConf('default_sender'));
+        if (!mail_isvalid($s_email)) throw new \Exception('Invalid sender mail address'); // FIXME localize
 
-        /* Prepare mail text. */
-        if (file_exists($conf['savedir'] . "/pages/wiki/infomail/template.txt")) {
-            $mailtext = file_get_contents($conf['savedir'] . "/pages/wiki/infomail/template.txt");
-        } else {
-            $mailtext = file_get_contents(dirname(__FILE__) . '/template.txt');
-        }
-        $parts = explode("###template_begin###", $mailtext);
-        $mailtext = $parts[1];
+        // named Sender
+        $sender = "$s_name <$s_email>";
+
+        // the page ID
+        $id = $INPUT->filter('cleanID')->str('id');
+        if ($id === '' || !page_exists($id)) throw new \Exception('Invalid page submitted'); // FIXME localize
+
+        // comment
+        $comment = $INPUT->str('comment');
 
         // shorturl hook
-        if (!plugin_isdisabled('shorturl')) {
-            $shorturl =& plugin_load('helper', 'shorturl');
-            $shortID = $shorturl->autoGenerateShortUrl($page);
-            $pageurl = wl($shortID, '', true);
+        /** @var helper_plugin_shorturl $shorturl */
+        $shorturl = plugin_load('helper', 'shorturl');
+        if ($shorturl) {
+            $shortID = $shorturl->autoGenerateShortUrl($id);
+            $pageurl = wl($shortID, '', true, '&');
         } else {
-            $pageurl .= wl($page, '', true);
+            $pageurl = wl($id, '', true, '&');
         }
 
-        $subject = hsc($this->getConf('subjectprefix')) . " " . hsc($_POST['subject']);
+        // subject
+        $subject = $this->getConf('subjectprefix') . ' ' . $INPUT->str('subject');
 
-        foreach (array('NAME' => $r_name,
-                     'PAGE' => $page,
-                     'SITE' => $conf['title'],
-                     'SUBJECT' => $subject,
-                     'URL' => $pageurl,
-                     'COMMENT' => $comment,
-                     'AUTHOR' => $s_name) as $var => $val) {
-            $mailtext = str_replace('@' . $var . '@', $val, $mailtext);
-        }
-        /* Limit to two empty lines. */
-        $mailtext = preg_replace('/\n{4,}/', "\n\n\n", $mailtext);
-        $mailtext = preg_replace('/\n\s{2}/', "\n", $mailtext);
-        $mailtext = preg_replace('/^\s{2}/', "", $mailtext);
-        /* Wrap mailtext at 78 chars */
-        $mailtext = wordwrap($mailtext, 78);
+        // prepare replacements
+        $data = [
+            'NAME' => $INPUT->str('r_name'),
+            'PAGE' => $id,
+            'SITE' => $conf['title'],
+            'SUBJECT' => $subject,
+            'URL' => $pageurl,
+            'COMMENT' => $comment,
+            'AUTHOR' => $s_name,
+        ];
 
-        /* Perform stuff. */
-        $all_recipients = "";
-        foreach ($all_recipients_valid as $mail) {
-            $recipient = '<' . $mail . '>';
-            mail_send($recipient, $subject, $mailtext, $sender);
-            if ($this->getConf('logmails')) {
-                $this->mail_log($recipient, $subject, $mailtext, $sender);
-            }
-            $all_recipients .= $recipient;
+        // get the text
+        $mailtext = $helper->loadTemplate();
+
+        // Send mail
+        $mailer = new Mailer();
+        $mailer->bcc($all_recipients);
+        $mailer->from($sender);
+        $mailer->subject($subject);
+        $mailer->setBody($mailtext, $data);
+        $mailer->send();
+
+        /* FIXME
+        if ($this->getConf('logmails')) {
+            $this->mail_log($recipient, $subject, $mailtext, $sender);
         }
+
         if ($archiveon) {
             $this->mail_archive($all_recipients, $subject, $mailtext, $sender);
         }
-        return false;
+         */
     }
 
     /**

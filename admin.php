@@ -3,7 +3,7 @@
 class admin_plugin_infomail extends DokuWiki_Admin_Plugin
 {
 
-    const TPL = 'wiki:infomail:template';
+    const TPL = 'wiki:infomail:template'; // FIXME move to helper
 
     /** @inheritdoc */
     public function handle()
