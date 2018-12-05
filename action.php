@@ -7,14 +7,14 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         return confToHash(dirname(__FILE__).'/plugin.info.txt');
     }
 
-    function register(&$controller) {
+    public function register(Doku_Event_Handler $controller) {
         foreach (array('ACTION_ACT_PREPROCESS', 'AJAX_CALL_UNKNOWN',
                        'TPL_ACT_UNKNOWN') as $event) {
             $controller->register_hook($event, 'BEFORE', $this, '_handle');
         }
     }
 
-    function _handle(&$event, $param) {
+    public function _handle(Doku_Event $event, $param) {
         if (!in_array($event->data, array('infomail', 'plugin_infomail'))) {
             return;
         }
