@@ -5,9 +5,10 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
     /** @inheritdoc */
     public function register(Doku_Event_Handler $controller)
     {
-        foreach (array('ACTION_ACT_PREPROCESS', 'AJAX_CALL_UNKNOWN', 'TPL_ACT_UNKNOWN') as $event) {
-            $controller->register_hook($event, 'BEFORE', $this, '_handle');
-        }
+        // FIXME it's probably not cool to have all three events go to the same handler
+        $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, '_handle');
+        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, '_handle');
+        $controller->register_hook('TPL_ACT_UNKNOWN', 'BEFORE', $this, '_handle');
     }
 
     /**
@@ -17,129 +18,95 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
      */
     public function _handle(Doku_Event $event)
     {
+        // the basic handling is the same for all events
+        // we either show the form or handle the post data
+
+        // FIXME change this into one string
         if (!in_array($event->data, array('infomail', 'plugin_infomail'))) {
             return;
         }
-
         $event->preventDefault();
-
+        // for this event we only signal, that we will handle this mode
         if ($event->name === 'ACTION_ACT_PREPROCESS') {
             return;
         }
-
         $event->stopPropagation();
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST' &&
+        global $INPUT;
+
+        /*
+        if ($INPUT->server->str('REQUEST_METHOD') === 'POST') {
             isset($_POST['sectok']) &&
             !($err = $this->_handle_post())) {
             if ($event->name === 'AJAX_CALL_UNKNOWN') {
-                /* To signal success to AJAX. */
+                // To signal success to AJAX. 
                 $this->_show_success();
                 return;
             }
             echo 'Thanks for recommending our site.';
             return;
         }
+        */
+
         /* To display msgs even via AJAX. */
         echo ' ';
         if (isset($err)) {
             msg($err, -1);
         }
-        $this->_show_form();
+        echo $this->getForm();
     }
 
     /**
-     * Shows the mailform
+     * Builds the Mail Form
      */
-    protected function _show_form()
+    protected function getForm()
     {
-        global $conf;
-        global $ID;
-        $r_name = isset($_REQUEST['r_name']) ? $_REQUEST['r_name'] : '';
-        $r_email = isset($_REQUEST['r_email']) ? $_REQUEST['r_email'] : '';
-        $s_name = isset($_REQUEST['s_name']) ? $_REQUEST['s_name'] : '';
-        $s_email = isset($_REQUEST['s_email']) ? $_REQUEST['s_email'] : '';
-        $comment = isset($_REQUEST['comment']) ? $_REQUEST['comment'] : '';
-        $subject = isset($_REQUEST['subject']) ? $_REQUEST['subject'] : '';
+        global $INPUT;
+        $id = getID(); // we may run in AJAX context
+        if ($id === '') throw new \RuntimeException('No ID given');
 
-        if (isset($_REQUEST['id'])) {
-            $id = $_REQUEST['id'];
-        } else {
-            global $ID;
-            if (!isset($ID)) {
-                msg('Unknown page', -1);
-                return;
-            }
-            $id = $ID;
-        }
-        $form = new Doku_Form('infomail_plugin', '?do=infomail');
-        $form->addHidden('id', $id);
-        #  $form->startFieldset($this->getLang('formname') . " " . hsc($id) );
-        if (isset($_SERVER['REMOTE_USER'])) {
+        $form = new \dokuwiki\Form\Form([
+            'action' => wl($id, ['do' => 'infomail']),
+            'id' => 'infomail_plugin', #FIXME bad ID
+        ]);
+        $form->setHiddenField('id', $id); // we need it for the ajax call
+
+        if ($INPUT->server->has('REMOTE_USER')) {
             global $USERINFO;
-            $form->addHidden('s_name', $USERINFO['name']);
-            $form->addHidden('s_email', $USERINFO['mail']);
+            $form->setHiddenField('s_name', $USERINFO['name']);
+            $form->setHiddenField('s_email', $USERINFO['mail']);
         } else {
-            $form->addElement(form_makeTextField('s_name', $s_name, $this->getLang('yourname')));
-            $form->addElement(form_makeTextField('s_email', $s_email, $this->getLang('youremailaddress')));
+            $form->addTextInput('s_name', $this->getLang('yourname'))->addClass('edit');
+            $form->addTextInput('s_email', $this->getLang('youremailaddress'))->addClass('edit');
         }
 
         //get default emails from config
-        $r_predef = array();
-        $r_predef = explode('|', $this->getConf('default_recipient'));
-        foreach ($r_predef as $addr) {
-            if (mail_isvalid($addr)) {
-                $r_predef_valid[] = $addr;
-            }
+        $lists = explode('|', $this->getConf('default_recipient'));
+        $lists = array_filter($lists, 'mail_isvalid');
+        // get simple listfiles from pages and add them
+        $lists = array_merge($lists, []); //FIXME this needs to come from a central function (in admin)
+
+        if ($lists) {
+            array_unshift($lists, ''); // add empty option
+            $form->addDropdown('r_predef', $lists, $this->getLang('bookmarks'));
         }
 
-        // get simple listfiles from pages
-        $listdir = rtrim($conf['datadir'], "/") . "/wiki/infomail/";
-        $simple_lists = array();
-        if ($handle = @opendir($listdir)) {
-            while (false !== ($file = readdir($handle))) {
-                if ($file != "." && $file != "..") {
-                    if (substr($file, 0, 5) == "list_") {
-                        $simple_lists[] = substr($file, 5, -4);
-                    }
-                }
-            }
-            closedir($handle);
-        }
+        $form->addTextInput('r_email', $this->getLang('recipients'))->addClass('edit');
+        $form->addTextInput('subject', $this->getLang('subject'))->addClass('edit');
+        $form->addTextarea('comment', $this->getLang('message'))->attr('rows', '8')->attr('cols', '10')->addClass('edit');
 
-        // print selection
-        $morerec = "";
-        if (count($r_predef_valid) > 0) {
-            array_unshift($r_predef_valid, $this->getLang('noneselected'));
-            $r_predef_valid = array_merge($r_predef_valid, $simple_lists);
-            $form->addElement(form_makeListboxField('r_predef', $r_predef_valid, '', $this->getLang('bookmarks')));
-            $morerec = $this->getLang('more_rec_fill');
-        } elseif (count($simple_lists) > 0) {
-            array_unshift($simple_lists, $this->getLang('noneselected'));
-            $form->addElement(form_makeListboxField('r_predef', $simple_lists, '', $this->getLang('bookmarks')));
-            $morerec = $this->getLang('more_rec_fill');
-        }
+        /** @var helper_plugin_captcha $captcha */
+        $captcha = plugin_load('helper', 'captcha');
+        if ($captcha) $form->addHTML($captcha->getHTML());
 
-        $form->addElement(form_makeTextField('r_email', $r_email, $morerec . $this->getLang('recipients')));
-        $form->addElement(form_makeTextField('subject', $subject, $this->getLang('subject')));
-        $form->addElement('<label><span>' . $this->getLang('message') . '</span>' .
-            '<textarea name="comment" rows="8" cols="10" ' .
-            'class="edit">' . $comment . '</textarea></label>');
-        $helper = null;
-        if (@is_dir(DOKU_PLUGIN . 'captcha')) $helper = plugin_load('helper', 'captcha');
-        if (!is_null($helper) && $helper->isEnabled()) {
-            $form->addElement($helper->getHTML());
-        }
-        # FIXME:  I8N, Text
-        $form->addElement('<div class="buttons">' . $this->getLang('archive') . "&nbsp;");
-        $form->addElement('<select name="archiveopt">
-                            <option value="1">Ja</option>
-                            <option value="0">Nein</option>
-                           </select>');
-        $form->addElement(form_makeButton('submit', '', $this->getLang('send_infomail'), array("id" => "infomail__sendmail")));
-        $form->addElement(form_makeButton('submit', 'cancel', $this->getLang('cancel_infomail'), array("id" => "infomail_cancel")));
-        $form->addElement('</div>');
-        $form->printForm();
+        $form->addCheckbox('archiveopt', $this->getLang('archive'))->addClass('edit');
+
+        $form->addTagOpen('div')->addClass('buttons');
+        $form->addButton('submit', $this->getLang('send_infomail'))->attr('type', 'submit')->attr('id', 'infomail__sendmail');
+        $form->addButton('cancel', $this->getLang('cancel_infomail'))->attr('type', 'cancel')->attr('id', 'infomail__cancel');
+        $form->addTagClose('div');
+
+        return $form->toHTML();
     }
 
     /**
