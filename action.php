@@ -1,20 +1,22 @@
 <?php
-require_once DOKU_PLUGIN . 'action.php';
-require_once DOKU_INC . 'inc/form.php';
 
-class action_plugin_infomail extends DokuWiki_Action_Plugin {
-    function getInfo(){
-        return confToHash(dirname(__FILE__).'/plugin.info.txt');
-    }
-
-    public function register(Doku_Event_Handler $controller) {
-        foreach (array('ACTION_ACT_PREPROCESS', 'AJAX_CALL_UNKNOWN',
-                       'TPL_ACT_UNKNOWN') as $event) {
+class action_plugin_infomail extends DokuWiki_Action_Plugin
+{
+    /** @inheritdoc */
+    public function register(Doku_Event_Handler $controller)
+    {
+        foreach (array('ACTION_ACT_PREPROCESS', 'AJAX_CALL_UNKNOWN', 'TPL_ACT_UNKNOWN') as $event) {
             $controller->register_hook($event, 'BEFORE', $this, '_handle');
         }
     }
 
-    public function _handle(Doku_Event $event, $param) {
+    /**
+     * Send the email
+     *
+     * @param Doku_Event $event
+     */
+    public function _handle(Doku_Event $event)
+    {
         if (!in_array($event->data, array('infomail', 'plugin_infomail'))) {
             return;
         }
@@ -46,32 +48,33 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         $this->_show_form();
     }
 
-/**
-  * Shows the mailform
- */
-    function _show_form() {
+    /**
+     * Shows the mailform
+     */
+    protected function _show_form()
+    {
         global $conf;
         global $ID;
-        $r_name  = isset($_REQUEST['r_name']) ? $_REQUEST['r_name'] : '';
+        $r_name = isset($_REQUEST['r_name']) ? $_REQUEST['r_name'] : '';
         $r_email = isset($_REQUEST['r_email']) ? $_REQUEST['r_email'] : '';
-        $s_name  = isset($_REQUEST['s_name']) ? $_REQUEST['s_name'] : '';
+        $s_name = isset($_REQUEST['s_name']) ? $_REQUEST['s_name'] : '';
         $s_email = isset($_REQUEST['s_email']) ? $_REQUEST['s_email'] : '';
         $comment = isset($_REQUEST['comment']) ? $_REQUEST['comment'] : '';
         $subject = isset($_REQUEST['subject']) ? $_REQUEST['subject'] : '';
 
         if (isset($_REQUEST['id'])) {
-            $id  = $_REQUEST['id'];
+            $id = $_REQUEST['id'];
         } else {
             global $ID;
             if (!isset($ID)) {
                 msg('Unknown page', -1);
                 return;
             }
-            $id  = $ID;
+            $id = $ID;
         }
         $form = new Doku_Form('infomail_plugin', '?do=infomail');
         $form->addHidden('id', $id);
-      #  $form->startFieldset($this->getLang('formname') . " " . hsc($id) );
+        #  $form->startFieldset($this->getLang('formname') . " " . hsc($id) );
         if (isset($_SERVER['REMOTE_USER'])) {
             global $USERINFO;
             $form->addHidden('s_name', $USERINFO['name']);
@@ -84,20 +87,20 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         //get default emails from config
         $r_predef = array();
         $r_predef = explode('|', $this->getConf('default_recipient'));
-        foreach ($r_predef as $addr ) {
+        foreach ($r_predef as $addr) {
             if (mail_isvalid($addr)) {
                 $r_predef_valid[] = $addr;
             }
         }
 
         // get simple listfiles from pages
-        $listdir = rtrim($conf['datadir'], "/")."/wiki/infomail/";
+        $listdir = rtrim($conf['datadir'], "/") . "/wiki/infomail/";
         $simple_lists = array();
         if ($handle = @opendir($listdir)) {
             while (false !== ($file = readdir($handle))) {
-                if ($file != "." && $file != ".." ) {
-                    if (substr($file, 0, 5) == "list_" ) {
-                        $simple_lists[] =substr($file,5,-4);
+                if ($file != "." && $file != "..") {
+                    if (substr($file, 0, 5) == "list_") {
+                        $simple_lists[] = substr($file, 5, -4);
                     }
                 }
             }
@@ -106,12 +109,12 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
 
         // print selection
         $morerec = "";
-        if(count($r_predef_valid)>0) {
+        if (count($r_predef_valid) > 0) {
             array_unshift($r_predef_valid, $this->getLang('noneselected'));
             $r_predef_valid = array_merge($r_predef_valid, $simple_lists);
             $form->addElement(form_makeListboxField('r_predef', $r_predef_valid, '', $this->getLang('bookmarks')));
             $morerec = $this->getLang('more_rec_fill');
-        } elseif(count($simple_lists)>0) {
+        } elseif (count($simple_lists) > 0) {
             array_unshift($simple_lists, $this->getLang('noneselected'));
             $form->addElement(form_makeListboxField('r_predef', $simple_lists, '', $this->getLang('bookmarks')));
             $morerec = $this->getLang('more_rec_fill');
@@ -119,41 +122,36 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
 
         $form->addElement(form_makeTextField('r_email', $r_email, $morerec . $this->getLang('recipients')));
         $form->addElement(form_makeTextField('subject', $subject, $this->getLang('subject')));
-        $form->addElement('<label><span>'.$this->getLang('message').'</span>'.
-                          '<textarea name="comment" rows="8" cols="10" ' .
-                          'class="edit">' . $comment . '</textarea></label>');
+        $form->addElement('<label><span>' . $this->getLang('message') . '</span>' .
+            '<textarea name="comment" rows="8" cols="10" ' .
+            'class="edit">' . $comment . '</textarea></label>');
         $helper = null;
-        if(@is_dir(DOKU_PLUGIN.'captcha')) $helper = plugin_load('helper','captcha');
-        if(!is_null($helper) && $helper->isEnabled()){
+        if (@is_dir(DOKU_PLUGIN . 'captcha')) $helper = plugin_load('helper', 'captcha');
+        if (!is_null($helper) && $helper->isEnabled()) {
             $form->addElement($helper->getHTML());
         }
         # FIXME:  I8N, Text
-        $form->addElement('<div class="buttons">' . $this->getLang('archive'). "&nbsp;");
+        $form->addElement('<div class="buttons">' . $this->getLang('archive') . "&nbsp;");
         $form->addElement('<select name="archiveopt">
                             <option value="1">Ja</option>
                             <option value="0">Nein</option>
-                           </select>' );
-        $form->addElement(form_makeButton('submit', '', $this->getLang('send_infomail'),array("id"=>"infomail__sendmail")));
-        $form->addElement(form_makeButton('submit', 'cancel', $this->getLang('cancel_infomail'),array("id"=>"infomail_cancel")));
+                           </select>');
+        $form->addElement(form_makeButton('submit', '', $this->getLang('send_infomail'), array("id" => "infomail__sendmail")));
+        $form->addElement(form_makeButton('submit', 'cancel', $this->getLang('cancel_infomail'), array("id" => "infomail_cancel")));
         $form->addElement('</div>');
         $form->printForm();
     }
 
-/**
-  *  Validate input and send mail if everything is ok
-  */
-    function _handle_post() {
+    /**
+     *  Validate input and send mail if everything is ok
+     */
+    protected function _handle_post()
+    {
         global $conf;
-        global $USERINFO;
-
-        //if( isset($_POST['archiveopt']))  {
-        //    echo $_POST['archiveopt'];
-        //} else {
-        //}
 
         $helper = null;
-        if(@is_dir(DOKU_PLUGIN.'captcha')) $helper = plugin_load('helper','captcha');
-        if(!is_null($helper) && $helper->isEnabled() && !$helper->check()) {
+        if (@is_dir(DOKU_PLUGIN . 'captcha')) $helper = plugin_load('helper', 'captcha');
+        if (!is_null($helper) && $helper->isEnabled() && !$helper->check()) {
             return 'Wrong captcha';
         }
         /* Get recipients */
@@ -161,27 +159,27 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         if (isset($_POST['r_email'])) {
             $all_recipients = explode(" ", $_POST['r_email']);
         }
-        foreach ($all_recipients as $addr ) {
+        foreach ($all_recipients as $addr) {
             $addr = trim($addr);
             if (mail_isvalid($addr)) {
                 $all_recipients_valid[] = $addr;
             }
 
         }
-        if( isset($_POST['r_predef']) && mail_isvalid($_POST['r_predef']) )  {
-            $all_recipients_valid[] =  $_POST['r_predef'];
-        } elseif (isset($_POST['r_predef']) && file_exists(rtrim($conf['datadir'],"/")."/wiki/infomail/list_". $_POST['r_predef']. ".txt")) {
-                $listfile_content = file_get_contents(rtrim($conf['datadir'],"/")."/wiki/infomail/list_". $_POST['r_predef'] .".txt");
-                preg_match_all("/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i", $listfile_content, $simple_mails);
-                foreach($simple_mails[0] as $addr) {
-                    if (mail_isvalid($addr)) {
-                        $all_recipients_valid[] = $addr;
-                    }
+        if (isset($_POST['r_predef']) && mail_isvalid($_POST['r_predef'])) {
+            $all_recipients_valid[] = $_POST['r_predef'];
+        } elseif (isset($_POST['r_predef']) && file_exists(rtrim($conf['datadir'], "/") . "/wiki/infomail/list_" . $_POST['r_predef'] . ".txt")) {
+            $listfile_content = file_get_contents(rtrim($conf['datadir'], "/") . "/wiki/infomail/list_" . $_POST['r_predef'] . ".txt");
+            preg_match_all("/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i", $listfile_content, $simple_mails);
+            foreach ($simple_mails[0] as $addr) {
+                if (mail_isvalid($addr)) {
+                    $all_recipients_valid[] = $addr;
                 }
             }
+        }
 
         /* Validate input. */
-        if ( count($all_recipients_valid) == 0 ) {
+        if (count($all_recipients_valid) == 0) {
             return $this->getLang('novalid_rec');
         }
 
@@ -190,7 +188,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         }
         $s_name = $_POST['s_name'];
 
-        $all_recipients_valid =  array_unique($all_recipients_valid);
+        $all_recipients_valid = array_unique($all_recipients_valid);
 
         $default_sender = $this->getConf('default_sender');
 
@@ -198,7 +196,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
             if (!isset($default_sender) || !mail_isvalid($default_sender)) {
                 return 'Ungültige Sender-Mailadresse angegeben' . $_POST['s_email'];
             } else {
-                if (trim($this->getConf('default_sender_displayname')) != "" ) {
+                if (trim($this->getConf('default_sender_displayname')) != "") {
                     $sender = $this->getConf('default_sender_displayname') . " " . ' <' . $this->getConf('default_sender') . '>';
                 } else {
                     $sender = $s_name . " " . ' <' . $this->getConf('default_sender') . '>';
@@ -216,16 +214,16 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         $comment = isset($_POST['comment']) ? $_POST['comment'] : null;
 
         /* Prepare mail text. */
-        if (file_exists($conf['savedir']."/pages/wiki/infomail/template.txt")) {
-            $mailtext = file_get_contents($conf['savedir']."/pages/wiki/infomail/template.txt");
+        if (file_exists($conf['savedir'] . "/pages/wiki/infomail/template.txt")) {
+            $mailtext = file_get_contents($conf['savedir'] . "/pages/wiki/infomail/template.txt");
         } else {
-            $mailtext = file_get_contents(dirname(__FILE__).'/template.txt');
+            $mailtext = file_get_contents(dirname(__FILE__) . '/template.txt');
         }
         $parts = explode("###template_begin###", $mailtext);
         $mailtext = $parts[1];
 
         // shorturl hook
-        if(!plugin_isdisabled('shorturl')) {
+        if (!plugin_isdisabled('shorturl')) {
             $shorturl =& plugin_load('helper', 'shorturl');
             $shortID = $shorturl->autoGenerateShortUrl($page);
             $pageurl = wl($shortID, '', true);
@@ -236,12 +234,12 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
         $subject = hsc($this->getConf('subjectprefix')) . " " . hsc($_POST['subject']);
 
         foreach (array('NAME' => $r_name,
-                       'PAGE' => $page,
-                       'SITE' => $conf['title'],
-                       'SUBJECT' => $subject,
-                       'URL'  => $pageurl,
-                       'COMMENT' => $comment,
-                       'AUTHOR' => $s_name) as $var => $val) {
+                     'PAGE' => $page,
+                     'SITE' => $conf['title'],
+                     'SUBJECT' => $subject,
+                     'URL' => $pageurl,
+                     'COMMENT' => $comment,
+                     'AUTHOR' => $s_name) as $var => $val) {
             $mailtext = str_replace('@' . $var . '@', $val, $mailtext);
         }
         /* Limit to two empty lines. */
@@ -253,68 +251,70 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin {
 
         /* Perform stuff. */
         $all_recipients = "";
-        foreach ( $all_recipients_valid as $mail ) {
+        foreach ($all_recipients_valid as $mail) {
             $recipient = '<' . $mail . '>';
             mail_send($recipient, $subject, $mailtext, $sender);
-            if ( $this->getConf('logmails') ) {
+            if ($this->getConf('logmails')) {
                 $this->mail_log($recipient, $subject, $mailtext, $sender);
             }
             $all_recipients .= $recipient;
         }
-        if ( $archiveon ) {
+        if ($archiveon) {
             $this->mail_archive($all_recipients, $subject, $mailtext, $sender);
         }
         return false;
     }
 
-/**
-  * show success message
-  */
-function _show_success () {
+    /**
+     * show success message
+     */
+    protected function _show_success()
+    {
 
-    $html  = '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail">';
-    $html .= '<div class="no">';
-    $html .= ' <span class="ui-icon ui-icon-circle-check" style="float: left; margin: 0 7px 50px 0;"></span>';
-    $html .= '<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/></div></form>';
-    print $html;
-}
-
-/*
- * Logging infomails as Wikipages when configured so
- */
-function mail_archive($recipient, $subject, $mailtext, $sender) {
-    global $conf;
-    $targetdir = $conf['cachedir']."/infomail-plugin/archive/";
-    if ( ! is_dir($targetdir) ) {
-        mkdir($targetdir);
+        $html = '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail">';
+        $html .= '<div class="no">';
+        $html .= ' <span class="ui-icon ui-icon-circle-check" style="float: left; margin: 0 7px 50px 0;"></span>';
+        $html .= '<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/></div></form>';
+        print $html;
     }
 
-    $t = time();
-    $date = strftime("%d.%m.%Y, %H:%M",$t);
-    $mailtext = "Von:   $sender\nAn:    $recipient\nDatum: $date\n\n" .$mailtext;
+    /*
+     * Logging infomails as Wikipages when configured so
+     */
+    protected function mail_archive($recipient, $subject, $mailtext, $sender)
+    {
+        global $conf;
+        $targetdir = $conf['cachedir'] . "/infomail-plugin/archive/";
+        if (!is_dir($targetdir)) {
+            mkdir($targetdir);
+        }
 
-    $filename = strftime("%Y%m%d%H%M%S",$t)."_infomail.txt";
-    $archfile = $targetdir . $filename;
-    io_saveFile($archfile,"$mailtext\n",true);
+        $t = time();
+        $date = strftime("%d.%m.%Y, %H:%M", $t);
+        $mailtext = "Von:   $sender\nAn:    $recipient\nDatum: $date\n\n" . $mailtext;
 
-}
+        $filename = strftime("%Y%m%d%H%M%S", $t) . "_infomail.txt";
+        $archfile = $targetdir . $filename;
+        io_saveFile($archfile, "$mailtext\n", true);
 
-/*
-* Logging infomails as Wikipages when configured so
-*/
-function mail_log($recipient, $subject, $mailtext, $sender) {
-    global $conf;
-    $targetdir = $conf['cachedir']."/infomail-plugin/log/";
-    $logfile = $targetdir . "infomail.log";
-    if ( ! is_dir($targetdir) ) {
-        mkdir($targetdir);
     }
 
-    $t = time();
-    $log = $t."\t".strftime($conf['dformat'],$t)."\t".$_SERVER['REMOTE_ADDR']."\t".$sender."\t".$recipient;
-    io_saveFile($logfile,"$log\n",true);
+    /*
+    * Logging infomails as Wikipages when configured so
+    */
+    protected function mail_log($recipient, $subject, $mailtext, $sender)
+    {
+        global $conf;
+        $targetdir = $conf['cachedir'] . "/infomail-plugin/log/";
+        $logfile = $targetdir . "infomail.log";
+        if (!is_dir($targetdir)) {
+            mkdir($targetdir);
+        }
 
-}
+        $t = time();
+        $log = $t . "\t" . strftime($conf['dformat'], $t) . "\t" . $_SERVER['REMOTE_ADDR'] . "\t" . $sender . "\t" . $recipient;
+        io_saveFile($logfile, "$log\n", true);
 
-// End
+    }
+
 }
