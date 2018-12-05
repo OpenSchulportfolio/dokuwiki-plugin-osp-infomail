@@ -1,4 +1,6 @@
 <?php
+$lang['menu'] = "Infomail: Verteilerlisten und Vorlage";
+
 $lang['formname']= "Infomail:";
 $lang['yourname']= "Ihr Name:";
 $lang['youremailaddress']= "Ihre Mail-Adresse:";
@@ -13,7 +15,6 @@ $lang['cancel_infomail'] = "Abbrechen";
 $lang['novalid_rec'] = "Sie haben keine gültigen Empfänger angegeben!";
 $lang['invalid_sender'] = "Sie müssen einen Absender angeben!";
 $lang['invalid_pageid'] = "Sie haben keinen gültigen Seitennamen angegeben!";
-$lang['infomail_admin_menu_text'] = "Infomail: Verteilerlisten und Vorlage";
 $lang['admin_title'] = "Einfache Infomail Verteilerlisten";
 $lang['admin_desc'] = "
     <p>Hier können Sie Wikiseiten mit eMail-Adressen pflegen, die im Infomail Plugin als Lesezeichen zur verfügung stehen.</p>

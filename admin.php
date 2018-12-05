@@ -2,16 +2,6 @@
 
 class admin_plugin_infomail extends DokuWiki_Admin_Plugin
 {
-    public function getInfo()
-    {
-        return confToHash(dirname(__FILE__) . '/plugin.info.txt');
-    }
-
-    /** @inheritdoc */
-    public function getMenuText($lang)
-    {
-        return $this->getLang('infomail_admin_menu_text');
-    }
 
     public function handle()
     {

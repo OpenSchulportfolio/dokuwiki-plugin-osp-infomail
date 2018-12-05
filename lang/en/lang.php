@@ -1,7 +1,9 @@
 <?php
-$lang['formname']= "Infomail:";
-$lang['yourname']= "Your name:";
-$lang['youremailaddress']= "Your mailadress:";
+$lang['menu'] = "Infomail:  Distribution Lists and Template";
+
+$lang['formname'] = "Infomail:";
+$lang['yourname'] = "Your name:";
+$lang['youremailaddress'] = "Your mailadress:";
 $lang['noneselected'] = "No selection...";
 $lang['bookmarks'] = "Bookmarks:";
 $lang['more_rec_fill'] = "More ";
@@ -13,3 +15,12 @@ $lang['cancel_infomail'] = "Cancel";
 $lang['novalid_rec'] = "No valid recipient(s) given!";
 $lang['invalid_sender'] = "Please provide a sender name!";
 $lang['invalid_pageid'] = "No valid page!";
+
+$lang['admin_title'] = "Simple Infomail Distribution Lists";
+$lang['admin_desc'] = "FIXME and change to file";
+$lang['infomail_listoverview'] = "List Overview";
+$lang['newsimplelist'] = "New List (Enter Name):";
+$lang['createnewsimplelist'] = "Create List";
+$lang['infomail_edit_tpl'] = "Edit Infomail Template...";
+$lang['infomail_tpl'] = "Template";
+$lang['archive'] = "Archive this mail?";
