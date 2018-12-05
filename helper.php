@@ -6,6 +6,27 @@ class helper_plugin_infomail extends DokuWiki_Plugin
     const TPL = 'wiki:infomail:template';
 
     /**
+     * Return info to construct a link
+     *
+     * @todo an implementation as MenuItem would be nice too
+     * @return array
+     */
+    public function getLink()
+    {
+        global $ID;
+
+        $attr['href'] = wl($ID, ['do' => 'infomail'], false, '&');
+        $attr['class'] = 'plugin_infomail';
+        $attr['rel'] = 'no-follow';
+
+        return array(
+            'goto' => $ID,
+            'text' => $this->getLang('name'),
+            'attr' => $attr,
+        );
+    }
+
+    /**
      * Loads the recipients from a given list
      *
      * Returns an empty list if the list can't be found

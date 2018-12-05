@@ -38,7 +38,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
             try {
                 $this->sendMail();
                 if ($event->name === 'AJAX_CALL_UNKNOWN') {
-                    $this->_show_success(); // To signal success to AJAX.
+                    $this->ajaxSuccess(); // To signal success to AJAX.
                 } else {
                     msg('Thanks for recommending our site.', 1); // FIXME localize
                 }
@@ -215,16 +215,18 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
     }
 
     /**
-     * show success message
+     * show success message in ajax mode
+     *
+     * @fixme localize
      */
-    protected function _show_success()
+    protected function ajaxSuccess()
     {
-
-        $html = '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail">';
-        $html .= '<div class="no">';
-        $html .= ' <span class="ui-icon ui-icon-circle-check" style="float: left; margin: 0 7px 50px 0;"></span>';
-        $html .= '<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/></div></form>';
-        print $html;
+        echo '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail">';
+        echo '<div class="no">';
+        echo '<span class="ui-icon ui-icon-circle-check" style="float: left; margin: 0 7px 50px 0;"></span>';
+        echo '<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/>';
+        echo '</div>';
+        echo '</form>';
     }
 
     /*

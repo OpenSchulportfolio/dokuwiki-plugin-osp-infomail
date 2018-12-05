@@ -1,6 +1,7 @@
 <?php
 $lang['menu'] = "Infomail:  Distribution Lists and Template";
 
+$lang['name'] = 'Infomail';
 $lang['formname'] = "Infomail:";
 $lang['yourname'] = "Your name:";
 $lang['youremailaddress'] = "Your mailadress:";
