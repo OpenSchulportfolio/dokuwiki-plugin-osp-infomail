@@ -16,8 +16,6 @@ $lang['novalid_rec'] = "No valid recipient(s) given!";
 $lang['invalid_sender'] = "Please provide a sender name!";
 $lang['invalid_pageid'] = "No valid page!";
 
-$lang['admin_title'] = "Simple Infomail Distribution Lists";
-$lang['admin_desc'] = "FIXME and change to file";
 $lang['infomail_listoverview'] = "List Overview";
 $lang['newsimplelist'] = "New List (Enter Name):";
 $lang['createnewsimplelist'] = "Create List";
