@@ -34,6 +34,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
 
         // early output to trigger display msgs even via AJAX.
         echo ' ';
+        tpl_flush();
         if ($INPUT->server->str('REQUEST_METHOD') === 'POST') {
             try {
                 $this->sendMail();
@@ -101,8 +102,8 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
         $form->addCheckbox('archiveopt', $this->getLang('archive'))->addClass('edit');
 
         $form->addTagOpen('div')->addClass('buttons');
-        $form->addButton('submit', $this->getLang('send_infomail'))->attr('type', 'submit')->attr('id', 'infomail__sendmail');
-        $form->addButton('cancel', $this->getLang('cancel_infomail'))->attr('type', 'cancel')->attr('id', 'infomail__cancel');
+        $form->addButton('submit', $this->getLang('send_infomail'))->attr('type', 'submit');
+        $form->addButton('reset', $this->getLang('cancel_infomail'))->attr('type', 'reset');
         $form->addTagClose('div');
 
         return $form->toHTML();
@@ -224,7 +225,8 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
         echo '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail">';
         echo '<div class="no">';
         echo '<span class="ui-icon ui-icon-circle-check" style="float: left; margin: 0 7px 50px 0;"></span>';
-        echo '<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/>';
+        echo '<p>Ihre Nachricht wurde verschickt.</p>';
+        echo '<button type="reset" class="button">Schliessen</button>';
         echo '</div>';
         echo '</form>';
     }
