@@ -1,0 +1,7 @@
+====== Einfache Infomail Verteilerlisten ======
+
+Hier können Sie Wikiseiten mit E-Mail-Adressen pflegen, die im Infomail Plugin als Lesezeichen zur verfügung stehen.
+
+  * Eine Infomail wird an alle Mailadressen versandt, die auf der Wikiseite eingetragen sind.
+  * Verwenden Sie keine Wiki-Formatierungen auf den Listenseiten - geben Sie einfach die Mailadressen ein, am besten eine pro Zeile.
+  * Vermeiden Sie sehr große Listen, da es beim Versand sehr vieler Mails in einem kurzen Zeitraum zu Zustellungsproblemen kommen kann.

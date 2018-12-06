@@ -1,78 +1,90 @@
-/* Lib */
+var infomail = {
+    $dialog: null,
 
-var infomail_ajax_call = 'plugin_infomail';
+    /**
+     * Attach click handler to our link
+     */
+    init: function () {
+        jQuery('a.plugin_infomail').click(infomail.initform);
+    },
 
-function sack_form(form, fnc) {
-    var ajax = new sack(DOKU_BASE + 'lib/exe/ajax.php');
-    ajax.setVar('call', infomail_ajax_call);
-    function serializeByTag(tag) {
-        var inps = form.getElementsByTagName(tag);
-        for (var inp in inps) {
-            if (inps[inp].name) {
-                ajax.setVar(inps[inp].name, inps[inp].value);
+    /**
+     * Initializes the form dialog on click
+     *
+     * @param {Event} e
+     */
+    initform: function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        var url = new URL(e.target.href);
+        var id = url.searchParams.get('id');
+
+        infomail.$dialog = jQuery('<div></div>');
+        infomail.$dialog.dialog(
+            {
+                modal: true,
+                title: LANG.plugins.infomail.formname + ' ' + id,
+                minWidth: 680,
+                height: "auto",
+                close: function () {
+                    infomail.$dialog.dialog('destroy')
+                }
             }
-        }
+        );
+
+        jQuery.get(
+            DOKU_BASE + 'lib/exe/ajax.php',
+            {
+                'call': 'infomail',
+                'id': id
+            },
+            infomail.handleResult,
+            'html'
+        );
+    },
+
+    /**
+     * Display the result and attach handlers
+     *
+     * @param {string} data The HTML
+     */
+    handleResult: function (data) {
+        infomail.$dialog.html(data);
+        infomail.$dialog.find('button[type=reset]').click(infomail.cancel);
+        infomail.$dialog.find('button[type=submit]').click(infomail.send);
+    },
+
+    /**
+     * Cancel the infomail form
+     *
+     * @param {Event} e
+     */
+    cancel: function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        infomail.$dialog.dialog('destroy');
+    },
+
+    /**
+     * Serialize the form and send it
+     *
+     * @param {Event} e
+     */
+    send: function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var data = infomail.$dialog.find('form').serialize();
+        data = data + '&call=infomail';
+
+        infomail.$dialog.html('...');
+        jQuery.post(
+            DOKU_BASE + 'lib/exe/ajax.php',
+            data,
+            infomail.handleResult,
+            'html'
+        );
     }
-    serializeByTag('input');
-    serializeByTag('textarea');
-    serializeByTag('select');
-    ajax.onCompletion = fnc;
-    ajax.runAJAX();
-    return false;
-}
-
-/* commented out for compatibility reasons
-function bind(fnc, val) {
-    return function () {
-        return fnc(val);
-    };
-}
-*/
-
-function change_form_handler(forms, handler) {
-    if (!forms) return;
-    for (var formid in forms) {
-        var form = forms[formid];
-        form.onsubmit = bind(handler, form);
-    }
-}
-
-/* Recommend */
-
-function infomail_box(content) {
-    var div = $('infomail_box');
-    if (!div) {
-        div = document.createElement('div');
-        div.id = 'infomail_box';
-    } else if (content === '') {
-        div.parentNode.removeChild(div);
-        return;
-    }
-    div.innerHTML = content;
-    document.body.appendChild(div);
-    return div;
-}
-
-function infomail_handle() {
-
-    if (this.response === "AJAX call '" + infomail_ajax_call + "' unknown!\n") {
-        /* No user logged in. */
-        return;
-    }
-    if (this.responseStatus[0] === 204) {
-        var box = infomail_box('<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail"><div class="no"><fieldset class="infomailok"> <legend>Mail versandt...</legend<p>Ihre Nachricht wurde verschickt.</p><input type="submit" class="button" value="Schliessen" name="do[cancel]"/></fieldset></div></form>');
-    } else {
-
-        var box = infomail_box(this.response);
-        box.getElementsByTagName('label')[0].focus();
-        change_form_handler(box.getElementsByTagName('form'),
-                            function (form) {return sack_form(form, infomail_handle); });
-    }
-    var inputs = box.getElementsByTagName('input');
-    inputs[inputs.length - 1].onclick = function() {infomail_box(''); return false;};
-}
-
-addInitEvent(function () {
-                change_form_handler(getElementsByClass('btn_infomail', document, 'form'),
-                                    function (form) {return sack_form(form, infomail_handle); });
-             });
+};
+jQuery(infomail.init);

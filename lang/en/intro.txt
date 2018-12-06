@@ -1,0 +1,7 @@
+====== Simple Infomail Distribution Lists ======
+
+Here you can manage wiki pages containing email addresses. These list of addresses will be available in the infomail plugin as easy to use bookmarks to address several people at once.
+
+  * Infomails are sent to all the addresses in the page
+  * do not use any formatting on the page, just enter email addresses (one per line)
+  * avoid huge lists, sending too many mails in a short burst may create delivery problems
