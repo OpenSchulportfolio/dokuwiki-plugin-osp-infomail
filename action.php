@@ -67,7 +67,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
 
         $form = new \dokuwiki\Form\Form([
             'action' => wl($id, ['do' => 'infomail'], false, '&'),
-            'id' => 'infomail_plugin', #FIXME bad ID
+            'id' => 'infomail__plugin',
         ]);
         $form->setHiddenField('id', $id); // we need it for the ajax call
 

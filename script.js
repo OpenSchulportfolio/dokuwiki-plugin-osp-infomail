@@ -27,7 +27,9 @@ var infomail = {
                 title: LANG.plugins.infomail.formname + ' ' + id,
                 minWidth: 680,
                 height: "auto",
-                dialogClass: "infomail-no-close"
+                close: function () {
+                    infomail.$dialog.dialog('destroy')
+                }
             }
         );
 
