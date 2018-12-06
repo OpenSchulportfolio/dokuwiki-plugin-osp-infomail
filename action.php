@@ -41,7 +41,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
                 if ($event->name === 'AJAX_CALL_UNKNOWN') {
                     $this->ajaxSuccess(); // To signal success to AJAX.
                 } else {
-                    msg('Thanks for recommending our site.', 1); // FIXME localize
+                    msg($this->getLang('thanks'), 1);
                 }
                 return; // we're done here
             } catch (\Exception $e) {
@@ -153,18 +153,18 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
 
         // Sender name
         $s_name = $INPUT->filter('trim')->str('s_name', $this->getConf('default_sender_displayname'));
-        if ($s_name === '') throw new \Exception('Invalid sender name submitted'); // FIXME localize
+        if ($s_name === '') throw new \Exception($this->getLang('err_sendername'));
 
         // Sender email
         $s_email = $INPUT->filter('trim')->str('s_email', $this->getConf('default_sender'));
-        if (!mail_isvalid($s_email)) throw new \Exception('Invalid sender mail address'); // FIXME localize
+        if (!mail_isvalid($s_email)) throw new \Exception($this->getLang('err_sendermail'));
 
         // named Sender
         $sender = "$s_name <$s_email>";
 
         // the page ID
         $id = $INPUT->filter('cleanID')->str('id');
-        if ($id === '' || !page_exists($id)) throw new \Exception('Invalid page submitted'); // FIXME localize
+        if ($id === '' || !page_exists($id)) throw new \Exception($this->getLang('err_page'));
 
         // comment
         $comment = $INPUT->str('comment');
@@ -217,16 +217,14 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
 
     /**
      * show success message in ajax mode
-     *
-     * @fixme localize
      */
     protected function ajaxSuccess()
     {
         echo '<form id="infomail_plugin" accept-charset="utf-8" method="post" action="?do=infomail">';
         echo '<div class="no">';
         echo '<span class="ui-icon ui-icon-circle-check" style="float: left; margin: 0 7px 50px 0;"></span>';
-        echo '<p>Ihre Nachricht wurde verschickt.</p>';
-        echo '<button type="reset" class="button">Schliessen</button>';
+        echo '<p>' . $this->getLang('thanks') . '</p>';
+        echo '<button type="reset" class="button">' . $this->getLang('close') . '</button>';
         echo '</div>';
         echo '</form>';
     }

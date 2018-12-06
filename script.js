@@ -24,7 +24,7 @@ var infomail = {
         infomail.$dialog.dialog(
             {
                 modal: true,
-                title: "Infomail: " + id, // FIXME localize
+                title: LANG.plugins.infomail.formname + ' ' + id,
                 minWidth: 680,
                 height: "auto",
                 dialogClass: "infomail-no-close"
