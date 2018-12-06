@@ -1,5 +1,5 @@
 base    infomail
-author  Adrian Lang, Frank Schiebel
+author  Frank Schiebel
 email   frank@linuxmuster.net
 date    2018-12-06
 name    infomail
