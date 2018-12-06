@@ -99,7 +99,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
         $captcha = plugin_load('helper', 'captcha');
         if ($captcha) $form->addHTML($captcha->getHTML());
 
-        $form->addCheckbox('archiveopt', $this->getLang('archive'))->addClass('edit');
+        //$form->addCheckbox('archiveopt', $this->getLang('archive'))->addClass('edit');
 
         $form->addTagOpen('div')->addClass('buttons');
         $form->addButton('submit', $this->getLang('send_infomail'))->attr('type', 'submit');
@@ -204,7 +204,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
         $mailer->setBody($mailtext, $data);
         $mailer->send();
 
-        /* FIXME
+        /* FIXME currently not implemented
         if ($this->getConf('logmails')) {
             $this->mail_log($recipient, $subject, $mailtext, $sender);
         }
@@ -212,7 +212,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
         if ($archiveon) {
             $this->mail_archive($all_recipients, $subject, $mailtext, $sender);
         }
-         */
+        */
     }
 
     /**
@@ -231,6 +231,8 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
 
     /*
      * Logging infomails as Wikipages when configured so
+     *
+     * @todo currently not used, needs adjustment
      */
     protected function mail_archive($recipient, $subject, $mailtext, $sender)
     {
@@ -251,8 +253,10 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
     }
 
     /*
-    * Logging infomails as Wikipages when configured so
-    */
+     * Logging infomails as Wikipages when configured so
+     *
+     * @todo currently not used, needs adjustment
+     */
     protected function mail_log($recipient, $subject, $mailtext, $sender)
     {
         global $conf;
