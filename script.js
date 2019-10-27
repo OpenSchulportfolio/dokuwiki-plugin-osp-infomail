@@ -18,7 +18,16 @@ var infomail = {
         e.preventDefault();
 
         var url = new URL(e.target.href);
+        // searchParams only works, when no URL rewriting takes place
+        // from Dokuwiki - else there is no parameter id and this 
+        // returns null
         var id = url.searchParams.get('id');
+        if ( id === null ) {
+            // Convert url to string an get the last part without 
+            // any parameters from actions and the like
+            url = String(url);
+            id = url.split('/').pop().split('?')[0];
+        }
 
         infomail.$dialog = jQuery('<div></div>');
         infomail.$dialog.dialog(
