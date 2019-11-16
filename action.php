@@ -156,7 +156,7 @@ class action_plugin_infomail extends DokuWiki_Action_Plugin
         if ($s_name === '') throw new \Exception($this->getLang('err_sendername'));
 
         // Sender email
-        $s_email = $INPUT->filter('trim')->str('s_email', $this->getConf('default_sender'));
+        $s_email = $INPUT->filter('trim')->str('s_email', $this->getConf('default_sender'), true);
         if (!mail_isvalid($s_email)) throw new \Exception($this->getLang('err_sendermail'));
 
         // named Sender
