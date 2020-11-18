@@ -1,7 +1,7 @@
 base    infomail
 author  Frank Schiebel
 email   frank@linuxmuster.net
-date    2018-12-06
+date    2020-11-18
 name    infomail
 desc    Allows to inform users via email
 url     https://www.dokuwiki.org/plugin:infomail
